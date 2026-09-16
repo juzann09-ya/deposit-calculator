@@ -5,7 +5,7 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Позволяет запускать сборку вручную через интерфейс GitHub
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,16 +16,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Шаг 2: Кэширование зависимостей Buildozer (ускоряет последующие сборки)
+      # Шаг 2: Кэширование зависимостей Buildozer
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
           path: .buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # Шаг 3: Сборка Android APK с помощью ОФИЦИАЛЬНОГО экшена Buildozer
+      # Шаг 3: Сборка APK с помощью актуальной ветки master (исправляет проблему с apt update)
       - name: Build Android APK with Buildozer
-        uses: kivy/buildozer-action@master
+        uses: ArtemSBulgakov/buildozer-action@master
         with:
           command: buildozer android debug
 
