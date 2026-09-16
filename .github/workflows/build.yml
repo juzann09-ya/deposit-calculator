@@ -1,0 +1,40 @@
+name: Build Kivy App
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Позволяет запускать сборку вручную через интерфейс GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Шаг 1: Клонирование исходного кода вашего репозитория
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Шаг 2: Кэширование зависимостей Buildozer (ускоряет последующие сборки)
+      - name: Cache Buildozer global directory
+        uses: actions/cache@v4
+        with:
+          path: .buildozer
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+
+      # Шаг 3: Сборка APK с помощью готового GitHub Action
+      - name: Build Android APK with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        with:
+          buildozer_version: stable
+          command: buildozer android debug
+          # Если проект лежит не в корне репозитория, укажите путь ниже:
+          # work_dir: .
+
+      # Шаг 4: Выгрузка готового файла .apk в артефакты GitHub
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kivy-Android-APK
+          path: bin/*.apk
