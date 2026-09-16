@@ -9,27 +9,49 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # Используем стабильное окружение Ubuntu 22.04
 
     steps:
-      # Шаг 1: Клонирование исходного кода вашего репозитория
+      # Шаг 1: Клонирование репозитория
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Шаг 2: Кэширование зависимостей Buildozer
+      # Шаг 2: Установка правильной версии Java (OpenJDK 17) без сбойных PPA
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Шаг 3: Настройка Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-python-version: '3.11'
+
+      # Шаг 4: Установка системных зависимостей для Buildozer
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake libffi-dev libltdl-dev
+          pip3 install --upgrade pip
+          pip3 install cython buildozer
+
+      # Шаг 5: Кэширование Android SDK и зависимостей Buildozer (экономит 10 минут)
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
-          path: .buildozer
+          path: |
+            ~/.buildozer
+            .buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # Шаг 3: Сборка APK с помощью актуальной ветки master (исправляет проблему с apt update)
-      - name: Build Android APK with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@master
-        with:
-          command: buildozer android debug
+      # Шаг 6: Запуск сборки APK напрямую через Buildozer
+      - name: Build Android APK
+        run: |
+          buildozer android debug
 
-      # Шаг 4: Выгрузка готового файла .apk в артефакты GitHub
+      # Шаг 7: Выгрузка готового файла .apk в артефакты
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
