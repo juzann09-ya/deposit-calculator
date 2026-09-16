@@ -25,7 +25,7 @@ jobs:
 
       # Шаг 3: Сборка APK с помощью готового GitHub Action
       - name: Build Android APK with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
+        uses: ArtemSBulgakov/buildozer-action@v3
         with:
           buildozer_version: stable
           command: buildozer android debug
