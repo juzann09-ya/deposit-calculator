@@ -12,32 +12,32 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      # Шаг 1: Клонирование исходного кода вашего репозитория
+      # Шаг 1: Клонирование репозитория
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Шаг 2: Установка стабильной версии OpenJDK 17
+      # Шаг 2: Установка OpenJDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # Шаг 3: Настройка окружения Python
+      # Шаг 3: Настройка Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # Шаг 4: Установка необходимых системных зависимостей сборщика
+      # Шаг 4: Установка системных зависимостей
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake libffi-dev libltdl-dev
+          sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake libffi-dev libltdl-dev wget
           pip3 install --upgrade pip
           pip3 install cython buildozer
 
-      # Шаг 5: Кэширование папок сборки (для ускорения повторных запусков)
+      # Шаг 5: Кэширование папок сборки
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
@@ -46,19 +46,36 @@ jobs:
             .buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # Шаг 6: Принудительное принятие лицензий Android SDK и запуск сборки
+      # Шаг 6: Ручное исправление путей Android SDK (Решает проблему sdkmanager)
+      - name: Force Fix Android SDK Manager Paths
+        run: |
+          # 1. Создаем структуру папок, которую ищет Buildozer
+          mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
+          mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin
+          
+          # 2. Скачиваем официальный пакет cmdline-tools от Google
+          wget https://google.com -O cmdline.zip
+          unzip -q cmdline.zip
+          
+          # 3. Раскладываем утилиты по правильным путям
+          cp -r cmdline-tools/* ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/
+          
+          # 4. Создаем символическую ссылку (создаем старый путь tools/bin/sdkmanager, указывающий на новый cmdline-tools)
+          ln -s ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+          
+          # Очищаем за собой временные файлы
+          rm -rf cmdline-tools cmdline.zip
+
+      # Шаг 7: Принятие лицензий и запуск сборки APK
       - name: Build Android APK
         run: |
-          # Предотвращаем баг путей: создаем целевую директорию для инструментов SDK заранее
-          mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/
-          
-          # Передаем команду 'yes' для автоматического согласия со всеми лицензиями Google
+          # Автоматически принимаем лицензии Google
           yes | buildozer android licenses || true
           
-          # Запускаем сборку приложения в подробном режиме (verbose)
+          # Запуск сборки
           buildozer -v android debug
 
-      # Шаг 7: Сохранение и выгрузка готового .apk файла в артефакты GitHub
+      # Шаг 8: Выгрузка готового файла .apk в артефакты
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
