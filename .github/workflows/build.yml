@@ -23,14 +23,11 @@ jobs:
           path: .buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # Шаг 3: Сборка APK с помощью готового GitHub Action
+      # Шаг 3: Сборка Android APK с помощью ОФИЦИАЛЬНОГО экшена Buildozer
       - name: Build Android APK with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v3
+        uses: kivy/buildozer-action@master
         with:
-          buildozer_version: stable
           command: buildozer android debug
-          # Если проект лежит не в корне репозитория, укажите путь ниже:
-          # work_dir: .
 
       # Шаг 4: Выгрузка готового файла .apk в артефакты GitHub
       - name: Upload APK Artifact
