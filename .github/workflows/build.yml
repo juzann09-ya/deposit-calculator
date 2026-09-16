@@ -46,9 +46,16 @@ jobs:
             .buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # Шаг 6: Запуск сборки APK напрямую через Buildozer
+      # Шаг 6: Запуск сборки APK напрямую через Buildozer с фиксом SDK
       - name: Build Android APK
         run: |
+          # 1. Создаем структуру папок заранее, чтобы Buildozer не путался в путях
+          mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin
+          
+          # 2. Автоматически принимаем все лицензии Android SDK (это часто блокирует загрузку)
+          yes | buildozer android licenses || true
+          
+          # 3. Запускаем основную сборку приложения
           buildozer android debug
 
       # Шаг 7: Выгрузка готового файла .apk в артефакты
