@@ -12,34 +12,32 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      # Шаг 1: Клонирование репозитория
+      # Шаг 1: Клонирование исходного кода вашего репозитория
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Шаг 2: Установка OpenJDK 17
+      # Шаг 2: Установка стабильной версии OpenJDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # Шаг 3: Настройка Python
+      # Шаг 3: Настройка окружения Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # Шаг 4: Установка системных зависимостей и СВЕЖЕЙ версии Buildozer из Git
+      # Шаг 4: Установка необходимых системных зависимостей сборщика
       - name: Install System Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake libffi-dev libltdl-dev
           pip3 install --upgrade pip
-          pip3 install cython
-          # Устанавливаем Buildozer напрямую из master-ветки Kivy, где исправлены пути sdkmanager
-          pip3 install git+https://github.com
+          pip3 install cython buildozer
 
-      # Шаг 5: Кэширование зависимостей (очистите кэш в действиях GitHub, если снова упадет)
+      # Шаг 5: Кэширование папок сборки (для ускорения повторных запусков)
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
@@ -48,19 +46,19 @@ jobs:
             .buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
-      # Шаг 6: Подготовка окружения Android SDK и сборка APK
+      # Шаг 6: Принудительное принятие лицензий Android SDK и запуск сборки
       - name: Build Android APK
         run: |
-          # Принудительно создаем папку для современных cmdline-tools, чтобы у Buildozer не ломались пути
+          # Предотвращаем баг путей: создаем целевую директорию для инструментов SDK заранее
           mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/
           
-          # Автоматически принимаем лицензии
+          # Передаем команду 'yes' для автоматического согласия со всеми лицензиями Google
           yes | buildozer android licenses || true
           
-          # Запуск сборки в режиме логов (verbose) для контроля
+          # Запускаем сборку приложения в подробном режиме (verbose)
           buildozer -v android debug
 
-      # Шаг 7: Выгрузка артефактов
+      # Шаг 7: Сохранение и выгрузка готового .apk файла в артефакты GitHub
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
